@@ -19,9 +19,14 @@ const httpLink = ApolloLink.from([
   new HttpLink({uri: httpUrl})
 ]);
 
+// Make connectionParams a function to ensure
+// getAccessToken is invoked ONLY WHEN the connection starts
 const wsLink = new WebSocketLink({
   uri: wsUrl,
   options: {
+    connectionParams: () => ({
+      accessToken: getAccessToken()
+    }),
     lazy: true,
     reconnect: true
   }
