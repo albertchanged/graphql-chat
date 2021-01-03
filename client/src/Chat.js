@@ -1,20 +1,26 @@
 import { useQuery, useMutation, useSubscription } from "@apollo/react-hooks";
-import React, { useState } from 'react';
+import React from 'react';
 import { messagesQuery, addMessageMutation, messageAddedSubscription } from './graphql/queries';
 import MessageInput from './MessageInput';
 import MessageList from './MessageList';
 
 const Chat = ({user}) => {
-  const [messages, setMessages] = useState([]);
   // useQuery resembles [result, setResult]
-  // then dooes client.query with messagesQuery and setResult()
-  useQuery(messagesQuery, {
-    onCompleted: ({messages}) => setMessages(messages)
-  });
+  // then does client.query with messagesQuery and setResult()
+  const {data} = useQuery(messagesQuery);
+  const messages = data ? data.messages : [];
 
+  // Use ApolloClient's cache as single source of truth for data in client
   useSubscription(messageAddedSubscription, {
-    onSubscriptionData: ({subscriptionData}) => {
-      setMessages(messages.concat(subscriptionData.data.messageAdded));
+    onSubscriptionData: ({client, subscriptionData}) => {
+      // Store updated messages in ApolloClient's cache
+      // (This allows us to manage state locally)
+      client.writeData({data: {
+        messages: messages.concat(subscriptionData.data.messageAdded)
+      }});
+
+      // After writing to cache, components will be re-rendered
+      // and useQuery will return updated messages
     }
   });
   // useMutation returns a function that enables mutation later
